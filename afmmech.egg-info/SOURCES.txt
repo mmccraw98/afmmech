@@ -1,0 +1,7 @@
+setup.py
+afmmech/__init__.py
+afmmech/helpers.py
+afmmech.egg-info/PKG-INFO
+afmmech.egg-info/SOURCES.txt
+afmmech.egg-info/dependency_links.txt
+afmmech.egg-info/top_level.txt

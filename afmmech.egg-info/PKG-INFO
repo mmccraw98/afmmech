@@ -1,0 +1,11 @@
+Metadata-Version: 2.1
+Name: afmmech
+Version: 1.0
+Summary: a few simple python scripts for extracting mechanical properties from afm data
+Home-page: https://github.com/mmccraw98/afmmech
+Author: Marshall R. McCraw
+Author-email: marshall.mccraw@yale.edu
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
