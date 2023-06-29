@@ -448,3 +448,119 @@ def get_contact_point_index_fit(df, trigger_point_index, n_tries=5):
     y_offset, x_offset, slope = np.mean(params, axis=0)
     # get the index of the contact point
     return np.argmin((x - x_offset) ** 2)
+
+import copy
+import joblib
+import pickle
+
+class dataset:
+    def __init__(self, keys=[], values=[]):
+        self.data = {}
+        for key, value in zip(keys, values):
+            self.data.update({key: value})
+        self.base_data = copy.copy(self.data)
+    def __len__(self):
+        return len(self.keys)
+    def __getitem__(self, key):
+        return self.data[key]
+    def __repr__(self):
+        return "dataset(keys={}, values={})".format(list(self.data.keys()), list(self.data.values()))
+    def keys(self):
+        return self.data.keys()
+    def values(self):
+        return self.data.values()
+    def items(self):
+        return self.data.items()
+    def get_size_of(self, key):
+        return len(self.data[key])
+    def clear_format(self):
+        self.data = copy.copy(self.base_data)
+    def overwrite_base_format(self):
+        self.base_data = copy.copy(self.data)
+    def update(self, key, value):
+        self.data.update({key: value})
+    def save(self, path):
+        with open(path, 'wb') as f:
+            pickle.dump(self, f)
+    def load(self, path):
+        with open(path, 'rb') as f:
+            self = pickle.load(f)
+        return self
+    def process(self, key, func, new_key_name=None, *args, **kwargs):
+        if isinstance(key, list):
+            if new_key_name is None:
+                new_key_name = [None] * len(key)
+            elif not isinstance(new_key_name, list):
+                new_key_name = [new_key_name]
+            for k, new_name in zip(key, new_key_name):
+                self.process(k, func, new_key_name=new_name, *args, **kwargs)
+        else:
+            if new_key_name is not None:
+                self.update(new_key_name, [func(element, *args, **kwargs) for element in self.data[key]])
+            else:
+                self.data[key] = [func(element, *args, **kwargs) for element in self.data[key]]
+    def parallel_process(self, key, func, new_key_name=None, *args, **kwargs):
+        if isinstance(key, list):
+            if new_key_name is None:
+                new_key_name = [None] * len(key)
+            elif not isinstance(new_key_name, list):
+                new_key_name = [new_key_name]
+            for k, new_name in zip(key, new_key_name):
+                self.parallel_process(k, func, new_key_name=new_name, *args, **kwargs)
+        else:
+            if new_key_name is not None:
+                self.update(new_key_name, joblib.Parallel(n_jobs=-1)(joblib.delayed(func)(element, *args, **kwargs) for element in self.data[key]))
+            else:
+                self.data[key] = joblib.Parallel(n_jobs=-1)(joblib.delayed(func)(element, *args, **kwargs) for element in self.data[key])
+
+class dataset_dict(dataset):
+    def __init__(self, keys=[], values=[]):
+        super().__init__(keys, values)
+        # check that all values are datasets
+        for value in self.data.values():
+            assert isinstance(value, dataset)
+        # find the common keys
+        # self.common_keys = list(set.intersection(*[set(d.keys) for d in self.data.values()]))
+    def __repr__(self):
+        return "dataset_dict(keys={}, values={})".format(list(self.data.keys()), list(self.data.values()))
+    def columns(self, key=None):
+        # get all the columns in the dataset
+        return list(set.union(*[set(d.keys()) for d in self.data.values()]))
+    def process(self, column, func, new_column_name=None, *args, **kwargs):
+        if isinstance(column, list):
+            if new_column_name is None:
+                new_column_name = [None] * len(column)
+            elif not isinstance(new_column_name, list):
+                new_column_name = [new_column_name]
+            for c, new_name in zip(column, new_column_name):
+                self.process(c, func, new_column_name=new_name, *args, **kwargs)
+        else:
+            for d in self.data.values():
+                d.process(column, func, new_column_name, *args, **kwargs)
+    def parallel_process(self, column, func, new_column_name=None, *args, **kwargs):
+        if isinstance(column, list):
+            if new_column_name is None:
+                new_column_name = [None] * len(column)
+            elif not isinstance(new_column_name, list):
+                new_column_name = [new_column_name]
+            for c, new_name in zip(column, new_column_name):
+                self.parallel_process(c, func, new_column_name=new_name, *args, **kwargs)
+        for d in self.data.values():
+            d.parallel_process(column, func, new_column_name, *args, **kwargs)
+            
+def process_dataframe(df, k, sampling_frequency, ignore_trigger=False):
+    # format
+    formatted_df = format_df(df, k, sampling_frequency)
+    # get trigger point
+    trigger_point = get_trigger_point_index(formatted_df)
+    # get contact point
+    contact_point = get_contact_point_index_fit(formatted_df, trigger_point)
+    # get the repulsive data
+    trigger_point = trigger_point if not ignore_trigger else -1
+    contact_df = cut_repulsive_data(formatted_df, contact_point, trigger_point)
+    # shift the data
+    contact_df = shift_repulsive_data(contact_df)
+    return contact_df
+
+def parallel_load_ibw_data(folder):
+    return joblib.Parallel(n_jobs=-1)(joblib.delayed(ibw2df)(file) for file in get_files(folder))
