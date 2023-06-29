@@ -548,7 +548,7 @@ class dataset_dict(dataset):
         for d in self.data.values():
             d.parallel_process(column, func, new_column_name, *args, **kwargs)
             
-def process_dataframe(df, k, sampling_frequency, ignore_trigger=False):
+def process_afm_dataframe(df, k, sampling_frequency, ignore_trigger=False):
     # format
     formatted_df = format_df(df, k, sampling_frequency)
     # get trigger point

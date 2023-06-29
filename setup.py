@@ -5,7 +5,7 @@ with open('requirements.txt') as f:
 
 setup(
     name="afmmech",
-    version="2.1",
+    version="2.2",
     packages=find_packages(),
     author="Marshall R. McCraw",
     author_email="marshall.mccraw@yale.edu",

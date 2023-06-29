@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: afmmech
-Version: 2.1
+Version: 2.2
 Summary: a few simple python scripts for extracting mechanical properties from afm data
 Home-page: https://github.com/mmccraw98/afmmech
 Author: Marshall R. McCraw
